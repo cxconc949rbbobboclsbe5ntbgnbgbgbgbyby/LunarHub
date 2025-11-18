@@ -1,0 +1,17 @@
+{
+  "name": "LunarHub-unified-backend",
+  "version": "1.0.0",
+  "description": "Unified backend for LunarHub Lua Obfuscator: Handles obfuscation, storage, and retrieval.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.3.1",
+    "crypto": "^1.0.1",
+    "pg": "^8.11.3",
+    "cors": "^2.8.5"
+  }
+}
