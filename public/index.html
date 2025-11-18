@@ -3,10 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lunar Hub Obfuscater</title>
+    <title>Lunar Hub Obfuscator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'lh-primary': '#7F58E9',
+                        'lh-hover': '#9A77F5',
+                        'lh-dark': '#121212',
+                        'lh-secondary': '#1e1e28',
+                        'lh-border': '#333344',
+                        'lh-text': '#F0F0F0',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
         :root {
             --color-bg-primary: #121212;
@@ -15,48 +31,68 @@
             --color-btn-hover: #9A77F5;
             --color-text-light: #F0F0F0;
             --color-border: #333344;
+            --color-shadow: 0 10px 15px -3px rgba(127, 88, 233, 0.1), 0 4px 6px -2px rgba(127, 88, 233, 0.05);
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--color-bg-primary);
             color: var(--color-text-light);
             min-height: 100vh;
+            line-height: 1.6;
         }
         .code-area {
             background-color: var(--color-bg-secondary);
             color: var(--color-text-light);
             min-height: 400px;
-            resize: none;
+            max-height: 70vh;
+            resize: vertical;
             border: 1px solid var(--color-border);
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         .code-area:focus {
             outline: none;
             border-color: var(--color-btn-primary);
+            box-shadow: 0 0 0 2px var(--color-btn-primary);
         }
         .btn-main {
             background-color: var(--color-btn-primary);
             color: white;
-            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px 14px rgba(127, 88, 233, 0.4);
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
         }
         .btn-main:hover {
             background-color: var(--color-btn-hover);
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(127, 88, 233, 0.6);
+        }
+        .btn-main:disabled {
+            background-color: #585868;
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+            opacity: 0.8;
         }
         .btn-utility {
             color: var(--color-text-light);
-            background: none;
-            border: none;
-            transition: color 0.2s;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            padding: 8px 15px;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
         }
         .btn-utility:hover {
             color: var(--color-btn-primary);
+            border-color: var(--color-btn-primary);
+            background: #251a38;
         }
         .btn-utility:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            color: var(--color-text-light);
+            color: #888;
+            background: var(--color-bg-secondary);
+            border-color: var(--color-border);
         }
         .spinner {
             border-top-color: var(--color-text-light);
@@ -67,36 +103,72 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .message-success { background-color: #15803d; border-color: #22c55e; }
-        .message-error { background-color: #b91c1c; border-color: #ef4444; }
-        .message-warning { background-color: #a16207; border-color: #f59e0b; }
+        .message-success { background-color: #16a34a; border-color: #22c55e; }
+        .message-error { background-color: #dc2626; border-color: #ef4444; }
+        .message-warning { background-color: #d97706; border-color: #f59e0b; }
+        
+        .custom-radio:checked {
+            background-color: var(--color-btn-primary);
+            border-color: var(--color-btn-primary);
+            box-shadow: 0 0 0 2px var(--color-btn-primary);
+        }
+        .custom-radio {
+            appearance: none;
+            width: 1rem;
+            height: 1rem;
+            border-radius: 50%;
+            border: 2px solid var(--color-border);
+            background-color: #3f3f46;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .custom-radio:checked::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--color-text-light);
+        }
+
     </style>
 </head>
 <body class="p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto">
         
-        <header class="flex justify-between items-center mb-10">
-            <h1 class="text-2xl font-bold">Lunar Hub Obfuscater</h1>
-            <div class="flex space-x-4 text-xl">
-                
-                <a href="https://discord.gg/wKRCmJEP9c" target="_blank" class="hover:text-violet-400 transition" aria-label="Join our Discord">
-                    <i data-lucide="message-circle"></i> </a>
-                
-                <button class="hover:text-gray-400" aria-label="Toggle Theme">
-                    <i data-lucide="sun"></i>
+        <header class="flex justify-between items-center mb-10 pb-4 border-b border-lh-border">
+            <h1 class="text-3xl font-extrabold flex items-center">
+                <i data-lucide="moon" class="w-6 h-6 mr-3 text-lh-primary"></i>
+                Lunar Hub <span class="text-lh-primary ml-1">Obfuscator</span>
+            </h1>
+            <div class="flex space-x-5 text-xl">
+                <a href="#" class="text-lh-text hover:text-lh-primary transition duration-200" aria-label="Discord">
+                    <i data-lucide="message-square-text" class="w-6 h-6"></i>
+                </a>
+                <a href="https://github.com/your-project-link" target="_blank" class="text-lh-text hover:text-lh-primary transition duration-200" aria-label="Discord">
+                    <i data-lucide="discorf" class="w-6 h-6"></i>
+                </a>
+                <button class="text-lh-text hover:text-lh-primary transition duration-200" aria-label="Toggle Theme">
+                    <i data-lucide="sun" class="w-6 h-6"></i>
                 </button>
             </div>
         </header>
 
-        <div id="message-container" class="mb-6 p-3 rounded-xl border text-sm transition-opacity duration-300 opacity-0 hidden text-white"></div>
+        <div id="message-container" class="mb-6 p-4 rounded-xl border-2 text-sm transition-opacity duration-300 opacity-0 hidden text-white font-medium shadow-md"></div>
 
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <div>
-                <label for="code-input" class="block text-lg font-medium mb-2">Input Code</label>
-                <textarea id="code-input" class="code-area w-full p-4 rounded-xl focus:ring-0"
+            <div class="flex flex-col">
+                <label for="code-input" class="block text-lg font-semibold mb-2 text-lh-text">
+                    <i data-lucide="code" class="w-5 h-5 inline-block mr-2 text-lh-primary"></i> Input Code (Lua)
+                </label>
+                <textarea id="code-input" class="code-area w-full p-4 rounded-xl shadow-lg flex-grow"
                           placeholder="-- Paste your Lua code here
 local function greet(name)
     print('Hello, ' .. name .. '!')
@@ -106,35 +178,34 @@ greet('World')"></textarea>
             </div>
 
             
-            <div>
-                <label for="code-output" class="block text-lg font-medium mb-2">Obfuscated Output</label>
-                <textarea id="code-output" class="code-area w-full p-4 rounded-xl focus:ring-0" readonly
+            <div class="flex flex-col">
+                <label for="code-output" class="block text-lg font-semibold mb-2 text-lh-text">
+                    <i data-lucide="lock" class="w-5 h-5 inline-block mr-2 text-lh-primary"></i> Obfuscated Output
+                </label>
+                <textarea id="code-output" class="code-area w-full p-4 rounded-xl shadow-lg flex-grow" readonly
                           placeholder="Obfuscated code will appear here..."></textarea>
             </div>
         </div>
 
         
-        <div class="flex flex-col items-center mt-8">
+        <div class="flex flex-col items-center mt-10">
             <button id="obfuscate-btn"
-                    class="btn-main flex items-center justify-center px-12 py-3 font-semibold rounded-xl shadow-lg hover:shadow-xl transition disabled:opacity-50"
-                    style="min-width: 200px;">
-                <div id="loader" class="hidden w-5 h-5 border-2 border-transparent rounded-full spinner mr-2"></div>
+                    class="btn-main flex items-center justify-center px-16 py-4 text-lg font-bold rounded-xl disabled:opacity-50"
+                    style="min-width: 250px;">
+                <div id="loader" class="hidden w-5 h-5 border-2 border-transparent rounded-full spinner mr-3"></div>
                 <span id="btn-text">Obfuscate Code</span>
             </button>
 
-            
-            <div class="flex items-center space-x-6 mt-8 text-sm">
+            <div class="flex flex-wrap justify-center items-center space-x-4 mt-6 text-sm">
                 
                 <button id="clear-btn" class="btn-utility flex items-center">
                     <i data-lucide="x-circle" class="w-4 h-4 mr-1"></i> Clear Input
                 </button>
                 
-                
                 <button id="copy-btn" class="btn-utility flex items-center" disabled>
                     <i data-lucide="copy" class="w-4 h-4 mr-1"></i> <span id="copy-text">Copy Output</span>
                 </button>
 
-                
                 <button id="toggle-options-btn" class="btn-utility flex items-center">
                     <i data-lucide="settings" class="w-4 h-4 mr-1"></i> <span id="options-text">Show Options</span>
                 </button>
@@ -142,27 +213,30 @@ greet('World')"></textarea>
         </div>
 
         
-        <div id="options-panel" class="hidden bg-neutral-900 p-6 rounded-xl border border-gray-700 mt-12 max-w-xl mx-auto">
-            <h3 class="text-xl font-semibold mb-4 text-center">Obfuscation Presets</h3>
-            <div id="preset-selection" class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-8">
-                <label class="inline-flex items-center">
+        <div id="options-panel" class="hidden bg-lh-secondary p-8 rounded-xl border border-lh-border mt-12 shadow-2xl max-w-2xl mx-auto">
+            <h3 class="text-xl font-bold mb-5 text-center text-lh-primary">Obfuscation Presets</h3>
+            <div id="preset-selection" class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-12">
+                
+                <label class="inline-flex items-center cursor-pointer">
                     <input type="radio" name="preset" value="Minify" checked
-                           class="form-radio h-4 w-4 text-violet-500 border-gray-600 bg-gray-700 focus:ring-violet-500">
-                    <span class="ml-2">Weak</span>
+                           class="custom-radio">
+                    <span class="ml-3 font-medium">Minify <span class="text-xs text-gray-400">(Lightweight & Fast)</span></span>
                 </label>
-                <label class="inline-flex items-center">
+                
+                <label class="inline-flex items-center cursor-pointer">
                     <input type="radio" name="preset" value="Medium"
-                           class="form-radio h-4 w-4 text-violet-500 border-gray-600 bg-gray-700 focus:ring-violet-500">
-                    <span class="ml-2">Medium</span>
+                           class="custom-radio">
+                    <span class="ml-3 font-medium">Medium <span class="text-xs text-gray-400">(Balanced Protection)</span></span>
                 </label>
-                <label class="inline-flex items-center">
+                
+                <label class="inline-flex items-center cursor-pointer">
                     <input type="radio" name="preset" value="Strong"
-                           class="form-radio h-4 w-4 text-violet-500 border-gray-600 bg-gray-700 focus:ring-violet-500">
-                    <span class="ml-2">Strong</span>
+                           class="custom-radio">
+                    <span class="ml-3 font-medium">Strong <span class="text-xs text-lh-primary">(Maximum Security)</span></span>
                 </label>
             </div>
-            <p id="status-message" class="mt-4 text-center text-sm text-yellow-400 hidden">
-                The 'Strong' preset applies aggressive transformations that can significantly increase file size and runtime complexity.
+            <p id="status-message" class="mt-6 p-3 text-center text-sm rounded border border-yellow-500 bg-yellow-900/30 text-yellow-400 hidden">
+                **Warning:** The **'Strong'** preset applies aggressive transformations that can significantly increase file size and runtime complexity, and may occasionally cause compatibility issues. Test thoroughly!
             </p>
         </div>
 
@@ -178,22 +252,29 @@ greet('World')"></textarea>
         const copyTextEl = document.getElementById('copy-text');
         const messageContainer = document.getElementById('message-container');
 
-        const setStatus = (text, isError) => {
-            obfuscateBtn.disabled = !isError;
+        const setStatus = (text, type = 'success') => {
+            if (obfuscateBtn.disabled && btnTextEl.textContent !== 'Obfuscating...') {
+                 obfuscateBtn.disabled = false;
+            }
             loaderEl.classList.add('hidden');
             btnTextEl.textContent = 'Obfuscate Code';
             
             messageContainer.textContent = text;
-            messageContainer.classList.remove('hidden', 'opacity-0', 'message-success', 'message-error', 'message-warning');
-            messageContainer.classList.add('opacity-100');
+            messageContainer.className = 'mb-6 p-4 rounded-xl border-2 text-sm transition-opacity duration-300 text-white font-medium shadow-md';
+            messageContainer.classList.remove('hidden', 'opacity-0');
             
-            if (isError) {
+            if (type === 'error') {
                 messageContainer.classList.add('message-error');
+            } else if (type === 'warning') {
+                messageContainer.classList.add('message-warning');
             } else {
                 messageContainer.classList.add('message-success');
             }
+            
+            messageContainer.classList.add('opacity-100');
 
             setTimeout(() => {
+                messageContainer.classList.remove('opacity-100');
                 messageContainer.classList.add('opacity-0');
                 setTimeout(() => messageContainer.classList.add('hidden'), 300);
             }, 5000);
@@ -217,6 +298,7 @@ greet('World')"></textarea>
             toggleOptionsBtn.addEventListener('click', () => {
                 const isHidden = optionsPanel.classList.toggle('hidden');
                 optionsTextEl.textContent = isHidden ? 'Show Options' : 'Hide Options';
+                toggleOptionsBtn.classList.toggle('text-lh-primary', !isHidden);
             });
 
             const updateUIState = (preset) => {
@@ -235,7 +317,7 @@ greet('World')"></textarea>
                 const preset = document.querySelector('input[name="preset"]:checked').value;
 
                 if (!input) {
-                    setStatus('Please enter Lua code to obfuscate.', false);
+                    setStatus('Please enter Lua code to obfuscate.', 'warning');
                     outputEl.value = 'Please enter Lua code to obfuscate.';
                     return;
                 }
@@ -244,8 +326,7 @@ greet('World')"></textarea>
                 copyBtn.disabled = true;
                 loaderEl.classList.remove('hidden');
                 btnTextEl.textContent = 'Obfuscating...';
-                outputEl.value = "Sending code to server for obfuscation...";
-                
+                outputEl.value = "Processing code with preset: " + preset + " (This may take a moment)...";
                 messageContainer.classList.add('hidden');
 
                 try {
@@ -258,20 +339,20 @@ greet('World')"></textarea>
                     const data = await response.json();
                     
                     if (response.ok) {
-                        setStatus('Obfuscation Complete!', false);
+                        setStatus('Obfuscation Complete! Successfully copied ' + data.obfuscatedCode.length + ' bytes.', 'success');
                         outputEl.value = data.obfuscatedCode; 
                         copyBtn.disabled = false;
                     } else {
                         const errorMsg = data.error || 'Obfuscation Failed';
-                        const details = data.details || 'Unknown server error. (Is the backend running?)';
+                        const details = data.details || 'Unknown server error.';
                         
-                        setStatus(`ERROR: ${errorMsg}. See output for details.`, true);
-                        outputEl.value = `--- Execution Error ---\n\nDetails: ${details}\n\n--- Fallback Code ---\n${data.obfuscatedCode || ''}`;
+                        setStatus(`ERROR: ${errorMsg}. See output for details.`, 'error');
+                        outputEl.value = `--- Execution Error ---\n\nDetails: ${details}\n\n--- Fallback Code ---\n${data.obfuscatedCode || 'No fallback code provided.'}`;
                         console.error('Server Error:', data);
                     }
                 } catch (e) {
-                    setStatus(`A network error occurred: ${e.message}`, true);
-                    outputEl.value = `--- Network Error ---\n\nDetails: The server could not be reached. Is the backend service running?\n\nError: ${e.message}`;
+                    setStatus(`A network error occurred: ${e.message}. Is the backend service running?`, 'error');
+                    outputEl.value = `--- Network Error ---\n\nDetails: The server could not be reached.\n\nError: ${e.message}`;
                 } finally {
                     obfuscateBtn.disabled = false;
                     loaderEl.classList.add('hidden');
@@ -283,27 +364,36 @@ greet('World')"></textarea>
             copyBtn.addEventListener('click', () => {
                 const outputText = outputEl.value;
                 if (outputText && !copyBtn.disabled) {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = outputText;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(outputText).then(() => {
+                            copyTextEl.textContent = 'Copied!';
+                            setTimeout(() => updateCopyButtonState(), 2000);
+                        }).catch(err => {
+                            console.error('Could not copy text: ', err);
+                        });
+                    } else {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = outputText;
+                        document.body.appendChild(textarea);
+                        textarea.select();
                         document.execCommand('copy'); 
+                        document.body.removeChild(textarea);
+                        
                         copyTextEl.textContent = 'Copied!';
-                        setTimeout(() => copyTextEl.textContent = 'Copy Output', 2000);
-                    } catch (err) {
-                        console.error('Could not copy text: ', err);
+                        setTimeout(() => updateCopyButtonState(), 2000);
                     }
-                    document.body.removeChild(textarea);
                 }
             });
 
             document.getElementById('clear-btn').addEventListener('click', () => {
                 inputEl.value = '';
                 outputEl.value = 'Obfuscated code will appear here...';
-                messageContainer.classList.add('hidden');
+                messageContainer.classList.add('hidden', 'opacity-0');
                 updateCopyButtonState();
+                setStatus('Input and output fields cleared.', 'warning');
             });
+            
+            outputEl.addEventListener('input', updateCopyButtonState);
         });
     </script>
 </body>
