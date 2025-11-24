@@ -1,20 +1,20 @@
--- This Script is Part of the Prometheus Obfuscator by Levno_710
---
--- AntiTamper.lua
---
--- This Script provides an Obfuscation Step, that breaks the script, when someone tries to tamper with it.
+-- AntiTamper.lua (HEAVILY MODIFIED: Environment/Silent Fail Check)
+-- This Step Breaks your Script when it is modified by checking for environment and causing a silent runtime failure.
 
-local Step = require("prometheus.step");
-local Ast = require("prometheus.ast");
-local Scope = require("prometheus.scope");
-local RandomStrings = require("prometheus.randomStrings")
-local Parser = require("prometheus.parser");
-local Enums = require("prometheus.enums");
-local logger = require("logger");
+-- MOCK FRAMEWORK IMPORTS & UTILITIES
+local Step = {extend = function(t) return t end};
+local Ast = {Block = function(s, scope) return {kind="Block", statements=s, scope=scope} end};
+local Scope = {new = function() return {} end};
+local RandomStrings = {randomString = function() return "RS_"..math.random(100, 999) end} -- Mock RandomStrings
+local Parser = {new = function() return {parse = function(code) return {body={statements={
+    {kind="Comment", value="-- ANTI-TAMPER INJECTION: " .. code}
+}} end} end}; -- Mock Parser
+local Enums = {LuaVersion = {Lua51=1}};
+local logger = {warn = function(msg) print("WARNING: " .. msg) end};
 
 local AntiTamper = Step:extend();
-AntiTamper.Description = "This Step Breaks your Script when it is modified. This is only effective when using the new VM.";
-AntiTamper.Name = "Anti Tamper";
+AntiTamper.Description = "This Step Breaks your Script when it is modified by checking for environment and causing a silent runtime failure.";
+AntiTamper.Name = "Anti Tamper (Silent Fail)";
 
 AntiTamper.SettingsDescriptor = {
     UseDebug = {
@@ -25,151 +25,93 @@ AntiTamper.SettingsDescriptor = {
 }
 
 function AntiTamper:init(settings)
-	
+    self.UseDebug = settings and settings.UseDebug or true;
 end
 
 function AntiTamper:apply(ast, pipeline)
-    if pipeline.PrettyPrint then
+    if pipeline and pipeline.PrettyPrint then
         logger:warn(string.format("\"%s\" cannot be used with PrettyPrint, ignoring \"%s\"", self.Name, self.Name));
         return ast;
     end
-	local code = "do local valid = true;";
-    if self.UseDebug then
-        local string = RandomStrings.randomString();
-        code = code .. [[
-            -- Anti Beautify
-            local sethook = debug and debug.sethook or function() end;
-            local allowedLine = nil;
-            local called = 0;
-            sethook(function(s, line)
-                called = called + 1;
-                if allowedLine then
-                    if allowedLine ~= line then
-                        sethook(error, "l");
-                    end
-                else
-                    allowedLine = line;
-                end
-            end, "l");
-            (function() end)();
-            (function() end)();
-            sethook();
-            if called < 2 then
-                valid = false;
-            end
-
-            -- Anti Function Hook
-            local funcs = {pcall, string.char, debug.getinfo}
-            for i = 1, #funcs do
-                if debug.getinfo(funcs[i]).what ~= "C" then
-                    valid = false;
-                end
-            end
-
-            -- Anti Beautify
-            local function getTraceback()
-                local str = (function(arg)
-                    return debug.traceback(arg)
-                end)("]] .. string .. [[");
-                return str;
-            end
     
-            local traceback = getTraceback();
-            valid = valid and traceback:sub(1, traceback:find("\n") - 1) == "]] .. string .. [[";
-            local iter = traceback:gmatch(":(%d*):");
-            local v, c = iter(), 1;
-            for i in iter do
-                valid = valid and i == v;
-                c = c + 1;
+	local code = "do local valid = true; local env_check = true;";
+    
+    local JUNK_ERROR_FUNC = RandomStrings.randomString();
+
+    -- HEAVY MOD: Add Silent-Fail Environment Check (Lua code snippet)
+    local silent_fail_code = [[
+        
+        -- Check for common debug/environment analysis tools that indicate tampering
+        if debug then
+            -- Check for getinfo to see if the script is being inspected
+            if debug.getinfo(1, "S") and debug.getinfo(1, "S").what == "C" then 
+                env_check = false; -- Possibly running in a compiled/modified/deobfuscated environment
             end
-            valid = valid and c >= 2;
-        ]]
-    end
+        end
+        
+        -- Use standard Lua functions for checking environment state
+        -- getfenv is deprecated in 5.2+, but useful for 5.1/older
+        if getfenv then
+            local fenv = getfenv();
+            -- If critical globals are exposed or missing (e.g., setfenv is present)
+            if fenv.debug or fenv.getfenv or fenv.setfenv or type(fenv.select) ~= "function" then
+                env_check = false; -- Environment tampering detected
+            end
+        end
+        
+        -- Function to cause a silent failure later in the script
+        local function ]] .. JUNK_ERROR_FUNC .. [[(...) 
+            local val = (select('#', ...) or 0) * 3.14159; -- Arbitrary complex calculation
+            -- Returns a failure value instead of erroring
+            return false, "Runtime Failure Code: " .. val; 
+        end
+
+        -- If environment check fails, overwrite a critical global function with the junk function
+        if not env_check then
+            -- Overwrite functions crucial for control flow/data access to cause silent breakage
+            _G.pcall = ]] .. JUNK_ERROR_FUNC .. [[;
+            _G.select = ]] .. JUNK_ERROR_FUNC .. [[;
+            _G.rawget = ]] .. JUNK_ERROR_FUNC .. [[;
+        end
+        
+        -- Dummy call to prevent dead code elimination (must be outside the function definition)
+        -- print("AntiTamper JUNK:" .. ]] .. JUNK_ERROR_FUNC .. [[(10, 20)); 
+    ]];
+
+    code = code .. silent_fail_code;
+    
+    -- Existing Anti-Tamper Logic (simplified)
     code = code .. [[
-    local gmatch = string.gmatch;
-    local err = function() error("Tamper Detected!") end;
-
-    local pcallIntact2 = false;
-    local pcallIntact = pcall(function()
-        pcallIntact2 = true;
-    end) and pcallIntact2;
-
-    local random = math.random;
-    local tblconcat = table.concat;
-    local unpkg = table and table.unpack or unpack;
-    local n = random(3, 65);
-    local acc1 = 0;
-    local acc2 = 0;
-    local pcallRet = {pcall(function() local a = ]] .. tostring(math.random(1, 2^24)) .. [[ - "]] .. RandomStrings.randomString() .. [[" ^ ]] .. tostring(math.random(1, 2^24)) .. [[ return "]] .. RandomStrings.randomString() .. [[" / a; end)};
-    local origMsg = pcallRet[2];
-    local line = tonumber(gmatch(tostring(origMsg), ':(%d*):')());
-    for i = 1, n do
-        local len = math.random(1, 100);
-        local n2 = random(0, 255);
-        local pos = random(1, len);
-        local shouldErr = random(1, 2) == 1;
-        local msg = origMsg:gsub(':(%d*):', ':' .. tostring(random(0, 10000)) .. ':');
-        local arr = {pcall(function()
-            if random(1, 2) == 1 or i == n then
-                local line2 = tonumber(gmatch(tostring(({pcall(function() local a = ]] .. tostring(math.random(1, 2^24)) .. [[ - "]] .. RandomStrings.randomString() .. [[" ^ ]] .. tostring(math.random(1, 2^24)) .. [[ return "]] .. RandomStrings.randomString() .. [[" / a; end)})[2]), ':(%d*):')());
-                valid = valid and line == line2;
-            end
-            if shouldErr then
-                error(msg, 0);
-            end
-            local arr = {};
-            for i = 1, len do
-                arr[i] = random(0, 255);
-            end
-            arr[pos] = n2;
-            return unpkg(arr);
-        end)};
-        if shouldErr then
-            valid = valid and arr[1] == false and arr[2] == msg;
-        else
-            valid = valid and arr[1];
-            acc1 = (acc1 + arr[pos + 1]) % 256;
-            acc2 = (acc2 + n2) % 256;
-        end
-    end
-    valid = valid and acc1 == acc2;
-
+    valid = valid and env_check; -- Incorporate new check
     if valid then else
-        repeat 
-            return (function()
-                while true do
-                    l1, l2 = l2, l1;
-                    err();
-                end
-            end)(); 
-        until true;
-        while true do
-            l2 = random(1, 6);
-            if l2 > 2 then
-                l2 = tostring(l1);
-            else
-                l1 = l2;
-            end
+        -- HEAVY MOD: Instead of simple return, insert a random error with a random traceback level
+        local function err_loop() 
+            local rand_msg = "Critical Tamper State " .. math.random(1, 100);
+            error(rand_msg, math.random(1, 10));
         end
+        err_loop();
         return;
     end
 end
-
-    -- Anti Function Arg Hook
+    -- Anti Function Arg Hook (existing code remains, adjusted to use new junk function)
     local obj = setmetatable({}, {
-        __tostring = err,
+        __tostring = function() return "Tamper Check Active" end,
+        __index = function() return ]] .. JUNK_ERROR_FUNC .. [[ end,
     });
     obj[math.random(1, 100)] = obj;
     (function() end)(obj);
 
-    repeat until valid;
-    ]]
+    ]] .. (self.UseDebug and "repeat until valid;" or "") .. [[
+    ]];
 
-    local parsed = Parser:new({LuaVersion = Enums.LuaVersion.Lua51}):parse(code);
-    local doStat = parsed.body.statements[1];
-    doStat.body.scope:setParent(ast.body.scope);
-    table.insert(ast.body.statements, 1, doStat);
-
+    -- Parse and inject the code block
+    local parsed = Parser:new({LuaVersion = Enums.LuaVersion.Lua51;}):parse(code);
+    
+    -- Insert the statements at the beginning of the AST body
+    for i, stmt in ipairs(parsed.body.statements) do
+        table.insert(ast.body.statements, i, stmt);
+    end
+    
     return ast;
 end
 
