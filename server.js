@@ -17,7 +17,7 @@ app.use(cors());
 app.use(express.static('public'));
 
 // --- Obfuscation Constants ---
-const WATERMARK = "-- </> discord.gg/w2XcZQeANj @SLAYERSON \n";
+const WATERMARK = "-- </> discord.gg/w2XcZQeANj @SlayersonV4";
 const FALLBACK_WATERMARK = "--[[ OBFUSCATION FAILED: Returning raw script. Check your Lua syntax. ]] ";
 // Path to the external Lua obfuscator CLI (assuming 'src/cli.lua')
 const SCRIPT_LUA_PATH = path.join(__dirname, 'src', 'cli.lua');
